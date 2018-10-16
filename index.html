@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Page Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+    <script>
+        document.body.onload = () => {
+            const web3 = new Web3(Web3.givenProvider);
+            window.web3 = web3
+
+            const wallet = web3.eth.accounts.create()
+            console.log({ wallet })
+
+            axios.interceptors.request.use(function (config) {
+                if (config.url.indexOf('auth/register') !== -1) {
+                    return config
+                }
+
+                let message = web3.utils.sha3(new Date().valueOf().toString()).substring(2)
+
+                let result = wallet.sign(message);
+
+                console.log({ result })
+
+                let payload = btoa(JSON.stringify({
+                    email: `${wallet.address}@adsf.com`,
+                    message,
+                    signature: result.signature
+                }))
+
+                console.log({
+                    email: `${wallet.address}@adsf.com`,
+                    message,
+                    signature: result.signature
+                })
+
+                config.headers['Authorization'] = `Eth ${payload}`
+
+                return config;
+            }, function (error) {
+                // Do something with request error
+                return Promise.reject(error);
+            });
+
+            axios
+                .post('http://localhost/auth/register', {
+                    email: `${wallet.address}@adsf.com`,
+                    crypto_key: wallet.address,
+                    username: `${wallet.address}`
+                })
+                .then(r => {
+                    axios
+                        .get('http://localhost/me/demographics')
+                        .then(r => {
+                            console.log(r)
+                        })
+                        .catch(e => {
+                            console.log(e)
+                        })
+                })
+                .catch(e => {
+                    console.log(e)
+                })
+        }
+    </script>
+</body>
+</html>
